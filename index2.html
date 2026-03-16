@@ -1,0 +1,2021 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>神兽养成计划 - 小组积分系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #FF85A2;
+            --secondary: #8B93FF;
+            --accent: #FFD166;
+            --light: #F8F9FA;
+            --dark: #343A40;
+            --success: #06D6A0;
+            --danger: #EF476F;
+            --warning: #FF9E1F;
+            --info: #00bbf9;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Comic Sans MS', 'Yuanti SC', 'YouYuan', sans-serif;
+        }
+        
+        body {
+            background: url('https://images.unsplash.com/photo-1579546929662-711aa81148cf?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding: 15px;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: -1;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 12px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 3px dashed var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '✨';
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 1.3rem;
+            animation: sparkle 2s infinite;
+        }
+        
+        header::after {
+            content: '🌟';
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            font-size: 1.3rem;
+            animation: sparkle 3s infinite 0.5s;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        h1 {
+            color: var(--primary);
+            font-size: 1.9rem;
+            margin-bottom: 6px;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        h1::after {
+            content: '';
+            display: block;
+            width: 90px;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            margin: 4px auto;
+            border-radius: 2px;
+        }
+        
+        .subtitle {
+            color: var(--secondary);
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+        
+        .controls-row {
+            display: flex;
+            justify-content: center;
+            margin: 8px 0;
+        }
+        
+        .data-controls {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .data-btn {
+            padding: 6px 10px;
+            background-color: var(--success);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .data-btn.import {
+            background-color: var(--secondary);
+        }
+        
+        .data-btn.export {
+            background-color: var(--primary);
+        }
+        
+        .data-btn.template {
+            background-color: #9b5de5;
+        }
+        
+        .data-btn.delete-all {
+            background-color: var(--danger);
+        }
+        
+        .data-btn.customize {
+            background-color: var(--info);
+        }
+        
+        .data-btn.reset-points {
+            background-color: #f15bb5;
+        }
+        
+        .data-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .add-student {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .add-student input {
+            padding: 8px 14px;
+            border: 2px solid var(--primary);
+            border-radius: 40px 0 0 40px;
+            width: 220px;
+            font-size: 0.85rem;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .add-student button {
+            padding: 8px 16px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0 40px 40px 0;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .add-student button:hover {
+            background-color: #ff6b95;
+        }
+        
+        .students-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 24px;
+        }
+        
+        .student-card {
+            background-color: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 600px;
+            border: 4px solid transparent;
+            background-image: linear-gradient(white, white), 
+                              linear-gradient(45deg, var(--primary), var(--secondary));
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+        }
+        
+        .student-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .student-name {
+            font-size: 1.9rem;
+            color: var(--dark);
+            margin-bottom: 10px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .members-section {
+            margin: 16px 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            flex-shrink: 0;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        
+        .members-list {
+            font-size: 1.4rem;
+            color: var(--dark);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .member-tag {
+            background: var(--secondary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.3rem;
+        }
+        
+        .member-tag .remove-member {
+            cursor: pointer;
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+        
+        .member-tag .remove-member:hover {
+            opacity: 1;
+        }
+        
+        .add-member-btn {
+            background-color: var(--info);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 1.4rem;
+            margin-top: 8px;
+            transition: all 0.3s;
+        }
+        
+        .add-member-btn:hover {
+            background-color: #0099cc;
+        }
+        
+        .points {
+            font-size: 1.7rem;
+            color: var(--secondary);
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .pet-container {
+            height: 5.6cm;
+            width: 5.6cm;
+            margin: 10px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .pet {
+            font-size: 5.6cm;
+            transition: all 0.5s;
+            line-height: 1;
+        }
+        
+        .pet-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: all 0.5s;
+        }
+        
+        /* 移除所有阶段的缩放效果，确保所有图片大小一致 */
+        .egg .pet-image,
+        .baby .pet-image,
+        .growing .pet-image,
+        .adult .pet-image,
+        .beautiful .pet-image {
+            transform: none;
+        }
+        
+        /* 保留漂亮神兽的发光效果 */
+        .beautiful .pet-image {
+            animation: glow 2s infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                filter: drop-shadow(0 0 5px rgba(239, 71, 111, 0.5));
+            }
+            to {
+                filter: drop-shadow(0 0 15px rgba(239, 71, 111, 0.8)) drop-shadow(0 0 20px rgba(239, 71, 111, 0.6));
+            }
+        }
+        
+        .progress-bar {
+            height: 12px;
+            background-color: #e9ecef;
+            border-radius: 6px;
+            margin: 8px 0;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .progress {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s;
+        }
+        
+        .egg-progress {
+            background-color: #FFD166;
+        }
+        
+        .baby-progress {
+            background-color: #8B93FF;
+        }
+        
+        .growing-progress {
+            background-color: #FF85A2;
+        }
+        
+        .adult-progress {
+            background-color: #06D6A0;
+        }
+        
+        .beautiful-progress {
+            background: linear-gradient(90deg, #EF476F, #FFD166, #06D6A0, #118AB2);
+            background-size: 400% 400%;
+            animation: gradient 3s ease infinite;
+        }
+        
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        
+        .stage-info {
+            text-align: center;
+            font-size: 1.5rem;
+            color: var(--dark);
+            margin-top: 8px;
+            min-height: 48px;
+            flex-shrink: 0;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        
+        .action-buttons .customize {
+            background-color: var(--info);
+            color: white;
+        }
+        
+        .action-buttons .customize:hover {
+            background-color: #0099cc;
+        }
+        
+        .add-point-btn, .consume-point-btn, .delete-student-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 1.5rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        
+        .add-point-btn {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .consume-point-btn {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .delete-student-btn {
+            background-color: var(--danger);
+            color: white;
+            flex: 0.5;
+        }
+        
+        .add-point-btn:hover {
+            background-color: #05b388;
+        }
+        
+        .consume-point-btn:hover {
+            background-color: #e88c1a;
+        }
+        
+        .delete-student-btn:hover {
+            background-color: #e43a5f;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 16px;
+            background-color: var(--secondary);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transform: translateX(150%);
+            transition: transform 0.5s;
+            z-index: 1000;
+            font-size: 0.85rem;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 25px;
+            color: var(--secondary);
+            grid-column: 1 / -1;
+        }
+        
+        .empty-state p {
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+        
+        .empty-state .pet {
+            font-size: 3.5rem;
+            margin-bottom: 12px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 3px solid var(--primary);
+            position: relative;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .modal h2 {
+            color: var(--primary);
+            margin-bottom: 0;
+            font-size: 1.2rem;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--danger);
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        
+        .modal-close:hover {
+            background: #d32f2f;
+            transform: scale(1.1);
+        }
+        
+        .modal p {
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        
+        .modal-btn {
+            padding: 7px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .modal-btn.confirm {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .modal-btn.cancel {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .modal-btn.danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .modal-btn.warning {
+            background-color: #f15bb5;
+            color: white;
+        }
+        
+        .file-input {
+            width: 100%;
+            padding: 7px;
+            margin: 6px 0;
+            border: 2px dashed var(--secondary);
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .class-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            background-color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        .class-title {
+            font-size: 1.1rem;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        .image-upload-section {
+            margin: 12px 0;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        
+        .image-upload-section h3 {
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            color: var(--secondary);
+        }
+        
+        .image-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        
+        .preview-item {
+            text-align: center;
+            width: 100px;
+        }
+        
+        .preview-item img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+        }
+        
+        .preview-item p {
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+        
+        .image-input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        .image-input-label {
+            padding: 6px 12px;
+            background-color: var(--info);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+        
+        .image-input-label:hover {
+            background-color: #0099cc;
+        }
+        
+        .image-input {
+            display: none;
+        }
+        
+        .current-image-info {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .students-container {
+                grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            }
+            
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            .controls-row {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .data-controls {
+                justify-content: center;
+            }
+            
+            .pet-container {
+                height: 220px;
+                width: 220px;
+            }
+            
+            .pet {
+                font-size: 220px;
+            }
+            
+            .pet-image {
+                width: 220px;
+                height: 220px;
+            }
+            
+            .preview-item img {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .student-card {
+                min-height: 560px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .students-container {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }
+            
+            .student-card {
+                padding: 20px;
+                min-height: 520px;
+            }
+            
+            .pet-container {
+                height: 200px;
+                width: 200px;
+            }
+            
+            .pet {
+                font-size: 200px;
+            }
+            
+            .pet-image {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .preview-item img {
+                width: 70px;
+                height: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>神兽养成计划</h1>
+            <p class="subtitle">小组积分系统 - 小组协作，共同孵化属于你们的神兽！</p>
+            
+            <!-- 功能按钮 -->
+            <div class="controls-row">
+                <div class="data-controls">
+                    <button class="data-btn template" id="templateBtn">
+                        <i class="fas fa-download"></i> 模板
+                    </button>
+                    <button class="data-btn import" id="importBtn">
+                        <i class="fas fa-file-import"></i> 导入
+                    </button>
+                    <button class="data-btn export" id="exportBtn">
+                        <i class="fas fa-file-export"></i> 导出
+                    </button>
+                    <button class="data-btn reset-points" id="resetPointsBtn">
+                        <i class="fas fa-undo"></i> 清空积分
+                    </button>
+                    <button class="data-btn delete-all" id="deleteAllBtn">
+                        <i class="fas fa-trash"></i> 删除全部
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="class-header">
+            <div class="class-title" id="currentClassTitle">神兽养成乐园</div>
+            <div class="student-count" id="groupCount">小组数量: 0</div>
+        </div>
+        
+        <div class="add-student">
+            <input type="text" id="groupName" placeholder="输入小组名称...">
+            <button id="addGroupBtn">添加小组</button>
+        </div>
+        
+        <div class="students-container" id="groupsContainer">
+            <!-- 小组卡片将通过JavaScript动态生成 -->
+            <div class="empty-state">
+                <div class="pet">🥚</div>
+                <p>还没有小组，快添加第一个小组开始养成神兽吧！</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 导入数据模态框 -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeImportModal">&times;</button>
+            <h2>导入Excel数据</h2>
+            <p>请选择要导入的Excel文件：</p>
+            <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls">
+            <div class="modal-actions">
+                <button class="modal-btn confirm" id="confirmImportBtn">确认导入</button>
+                <button class="modal-btn cancel" id="cancelImportBtn">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 删除确认模态框 -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeDeleteModal">&times;</button>
+            <h2 id="deleteModalTitle">确认删除</h2>
+            <p id="deleteModalMessage">您确定要删除吗？此操作不可撤销。</p>
+            <div class="modal-actions">
+                <button class="modal-btn confirm" id="confirmDeleteBtn">确认删除</button>
+                <button class="modal-btn cancel" id="cancelDeleteBtn">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 清空积分确认模态框 -->
+    <div class="modal" id="resetPointsModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeResetPointsModal">&times;</button>
+            <h2>确认清空积分</h2>
+            <p id="resetPointsModalMessage">您确定要清空所有学生的积分吗？此操作不可撤销。</p>
+            <div class="modal-actions">
+                <button class="modal-btn warning" id="confirmResetPointsBtn">确认清空</button>
+                <button class="modal-btn cancel" id="cancelResetPointsBtn">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 学生自定义神兽模态框 -->
+    <div class="modal" id="customizeModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeCustomizeModal">&times;</button>
+            <h2 id="customizeModalTitle">自定义神兽图片</h2>
+            <p id="customizeModalStudentName" style="text-align: center; color: var(--primary); font-weight: bold; margin-bottom: 12px;"></p>
+            <p>请为每个阶段上传对应的图片（将统一显示为正方形）：</p>
+            
+            <div class="image-upload-section">
+                <h3>蛋阶段 (0-49分)</h3>
+                <div class="image-input-container">
+                    <label for="eggImageInput" class="image-input-label">
+                        <i class="fas fa-upload"></i> 选择图片
+                    </label>
+                    <input type="file" id="eggImageInput" class="image-input" data-stage="egg" accept="image/*">
+                    <span class="current-image-info" id="eggImageInfo">未上传</span>
+                </div>
+                <div class="image-preview" id="eggPreview"></div>
+            </div>
+            
+            <div class="image-upload-section">
+                <h3>幼崽阶段 (50-99分)</h3>
+                <div class="image-input-container">
+                    <label for="babyImageInput" class="image-input-label">
+                        <i class="fas fa-upload"></i> 选择图片
+                    </label>
+                    <input type="file" id="babyImageInput" class="image-input" data-stage="baby" accept="image/*">
+                    <span class="current-image-info" id="babyImageInfo">未上传</span>
+                </div>
+                <div class="image-preview" id="babyPreview"></div>
+            </div>
+            
+            <div class="image-upload-section">
+                <h3>成长阶段 (100-199分)</h3>
+                <div class="image-input-container">
+                    <label for="growingImageInput" class="image-input-label">
+                        <i class="fas fa-upload"></i> 选择图片
+                    </label>
+                    <input type="file" id="growingImageInput" class="image-input" data-stage="growing" accept="image/*">
+                    <span class="current-image-info" id="growingImageInfo">未上传</span>
+                </div>
+                <div class="image-preview" id="growingPreview"></div>
+            </div>
+            
+            <div class="image-upload-section">
+                <h3>成年阶段 (200-499分)</h3>
+                <div class="image-input-container">
+                    <label for="adultImageInput" class="image-input-label">
+                        <i class="fas fa-upload"></i> 选择图片
+                    </label>
+                    <input type="file" id="adultImageInput" class="image-input" data-stage="adult" accept="image/*">
+                    <span class="current-image-info" id="adultImageInfo">未上传</span>
+                </div>
+                <div class="image-preview" id="adultPreview"></div>
+            </div>
+            
+            <div class="image-upload-section">
+                <h3>漂亮神兽阶段 (500分以上)</h3>
+                <div class="image-input-container">
+                    <label for="beautifulImageInput" class="image-input-label">
+                        <i class="fas fa-upload"></i> 选择图片
+                    </label>
+                    <input type="file" id="beautifulImageInput" class="image-input" data-stage="beautiful" accept="image/*">
+                    <span class="current-image-info" id="beautifulImageInfo">未上传</span>
+                </div>
+                <div class="image-preview" id="beautifulPreview"></div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn danger" id="resetImagesBtn">重置为默认</button>
+                <button class="modal-btn confirm" id="saveImagesBtn">保存图片</button>
+                <button class="modal-btn cancel" id="cancelCustomizeBtn">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 成员管理模态框 -->
+    <div class="modal" id="memberModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeMemberModal">&times;</button>
+            <h2 id="memberModalTitle">管理小组成员</h2>
+            <p id="memberModalGroupName" style="text-align: center; color: var(--primary); font-weight: bold; margin-bottom: 12px;"></p>
+            
+            <!-- 从班级系统添加成员 -->
+            <div style="margin-bottom: 12px; padding: 10px; background: #f0f7ff; border-radius: 6px; border: 2px solid var(--info);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h3 style="font-size: 0.9rem; color: var(--info); margin: 0;">
+                        <i class="fas fa-users"></i> 从班级系统添加成员
+                    </h3>
+                    <button class="modal-btn" id="refreshClassStudentsBtn" style="padding: 4px 8px; font-size: 0.75rem; background: var(--info);">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
+                </div>
+                <div id="classStudentsContainer" style="max-height: 150px; overflow-y: auto; margin-bottom: 8px;">
+                    <p style="text-align: center; color: #999; font-size: 0.8rem;">正在加载班级学生...</p>
+                </div>
+            </div>
+            
+            <!-- 手动添加成员 -->
+            <div style="margin-bottom: 12px;">
+                <h3 style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 8px;">
+                    <i class="fas fa-user-plus"></i> 手动添加成员
+                </h3>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="memberNameInput" placeholder="输入成员姓名..." style="flex: 1; padding: 6px; border: 2px solid var(--secondary); border-radius: 6px; outline: none;">
+                    <button class="modal-btn confirm" id="addMemberBtn" style="padding: 6px 12px;">添加</button>
+                </div>
+            </div>
+            
+            <!-- 当前小组成员列表 -->
+            <div style="margin-bottom: 12px;">
+                <h3 style="font-size: 0.9rem; color: var(--primary); margin-bottom: 8px;">
+                    <i class="fas fa-list"></i> 当前小组成员
+                </h3>
+                <div id="membersListContainer" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; padding: 8px;">
+                    <p style="text-align: center; color: #999; font-size: 0.85rem;">暂无成员</p>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn" id="syncClassPointsBtn" style="background: var(--success);">
+                    <i class="fas fa-sync"></i> 同步班级积分
+                </button>
+                <button class="modal-btn cancel" id="closeMemberModalBtn">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 通知区域 -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // 小组数据存储
+        let groups = [];
+        
+        // 删除操作类型
+        let deleteType = ''; // 'all' 或 'group'
+        let deleteIndex = -1; // 删除小组的索引
+        
+        // 当前正在自定义的小组索引
+        let currentCustomizeIndex = -1;
+        
+        // 当前正在管理成员的小组索引
+        let currentMemberGroupIndex = -1;
+        
+        // 临时存储当前编辑的图片（在保存前不写入小组数据）
+        let tempPetImages = {
+            egg: null,
+            baby: null,
+            growing: null,
+            adult: null,
+            beautiful: null
+        };
+        
+        // 从localStorage加载数据
+        function loadData() {
+            const savedData = localStorage.getItem('groupPointsSystem');
+            if (savedData) {
+                try {
+                    groups = JSON.parse(savedData);
+                    // 确保每个小组都有必要的字段（兼容旧数据）
+                    groups.forEach(group => {
+                        if (!group.members) {
+                            group.members = [];
+                        }
+                        if (!group.petImages) {
+                            group.petImages = {
+                                egg: null,
+                                baby: null,
+                                growing: null,
+                                adult: null,
+                                beautiful: null
+                            };
+                        }
+                    });
+                } catch (e) {
+                    console.error("数据解析错误:", e);
+                    showNotification("数据加载失败，使用默认数据");
+                }
+            } else {
+                // 兼容旧数据：尝试从旧的键名加载
+                const oldData = localStorage.getItem('pointsSystem');
+                if (oldData) {
+                    try {
+                        const parsed = JSON.parse(oldData);
+                        // 检查是否是小组数据（数组且元素有name和members字段）
+                        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].name && Array.isArray(parsed[0].members)) {
+                            groups = parsed;
+                            saveData(); // 保存到新键名
+                            localStorage.removeItem('pointsSystem'); // 删除旧数据
+                        }
+                    } catch (e) {
+                        // 忽略错误
+                    }
+                }
+            }
+        }
+        
+        // 保存数据到localStorage
+        function saveData() {
+            localStorage.setItem('groupPointsSystem', JSON.stringify(groups));
+        }
+        
+        // 从班级积分系统读取学生数据
+        function getClassStudents() {
+            try {
+                const classData = localStorage.getItem('classPointsSystem');
+                if (classData) {
+                    const students = JSON.parse(classData);
+                    // 确保是学生数据格式
+                    if (Array.isArray(students) && students.length > 0 && students[0].name && typeof students[0].points === 'number') {
+                        return students;
+                    }
+                }
+            } catch (e) {
+                console.error("读取班级数据错误:", e);
+            }
+            return [];
+        }
+        
+        // 计算小组积分（所有成员积分之和）
+        function calculateGroupPoints(group) {
+            if (!group.members || group.members.length === 0) {
+                return 0;
+            }
+            return group.members.reduce((sum, member) => sum + (member.points || 0), 0);
+        }
+        
+        // 初始化
+        function init() {
+            loadData();
+            renderGroups();
+            setupEventListeners();
+            updateGroupCount();
+        }
+        
+        // 更新小组数量
+        function updateGroupCount() {
+            const groupCount = document.getElementById('groupCount');
+            groupCount.textContent = `小组数量: ${groups.length}`;
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 添加小组按钮
+            document.getElementById('addGroupBtn').addEventListener('click', addGroup);
+            
+            // 按Enter键添加小组
+            document.getElementById('groupName').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addGroup();
+                }
+            });
+            
+            // 成员管理模态框
+            document.getElementById('addMemberBtn').addEventListener('click', addMemberToGroup);
+            document.getElementById('closeMemberModal').addEventListener('click', hideMemberModal);
+            document.getElementById('closeMemberModalBtn').addEventListener('click', hideMemberModal);
+            document.getElementById('refreshClassStudentsBtn').addEventListener('click', renderClassStudents);
+            document.getElementById('syncClassPointsBtn').addEventListener('click', syncClassPoints);
+            
+            // 按Enter键添加成员
+            document.getElementById('memberNameInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addMemberToGroup();
+                }
+            });
+            
+            // 导入导出按钮
+            document.getElementById('importBtn').addEventListener('click', showImportModal);
+            document.getElementById('exportBtn').addEventListener('click', exportData);
+            document.getElementById('templateBtn').addEventListener('click', downloadTemplate);
+            document.getElementById('deleteAllBtn').addEventListener('click', confirmDeleteAll);
+            document.getElementById('resetPointsBtn').addEventListener('click', confirmResetPoints);
+            
+            // 导入模态框按钮
+            document.getElementById('confirmImportBtn').addEventListener('click', handleFileImport);
+            document.getElementById('cancelImportBtn').addEventListener('click', hideImportModal);
+            document.getElementById('closeImportModal').addEventListener('click', hideImportModal);
+            
+            // 删除模态框按钮
+            document.getElementById('confirmDeleteBtn').addEventListener('click', executeDelete);
+            document.getElementById('cancelDeleteBtn').addEventListener('click', hideDeleteModal);
+            document.getElementById('closeDeleteModal').addEventListener('click', hideDeleteModal);
+            
+            // 清空积分模态框按钮
+            document.getElementById('confirmResetPointsBtn').addEventListener('click', executeResetPoints);
+            document.getElementById('cancelResetPointsBtn').addEventListener('click', hideResetPointsModal);
+            document.getElementById('closeResetPointsModal').addEventListener('click', hideResetPointsModal);
+            
+            // 自定义模态框按钮
+            document.getElementById('saveImagesBtn').addEventListener('click', saveCustomImages);
+            document.getElementById('cancelCustomizeBtn').addEventListener('click', hideCustomizeModal);
+            document.getElementById('closeCustomizeModal').addEventListener('click', hideCustomizeModal);
+            document.getElementById('resetImagesBtn').addEventListener('click', resetImages);
+            
+            // 图片上传事件
+            document.querySelectorAll('.image-input').forEach(input => {
+                input.addEventListener('change', handleImageUpload);
+            });
+            
+            // 点击模态框外部关闭模态框
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                        // 如果是成员管理模态框，重置状态
+                        if (this.id === 'memberModal') {
+                            hideMemberModal();
+                        }
+                    }
+                });
+            });
+        }
+        
+        // 添加小组
+        function addGroup() {
+            const nameInput = document.getElementById('groupName');
+            const name = nameInput.value.trim();
+            
+            if (name === '') {
+                showNotification('请输入小组名称！');
+                return;
+            }
+            
+            // 检查是否已存在同名小组
+            if (groups.some(group => group.name === name)) {
+                showNotification('该小组已存在！');
+                return;
+            }
+            
+            // 添加新小组
+            groups.push({
+                name: name,
+                members: [],
+                petImages: {
+                    egg: null,
+                    baby: null,
+                    growing: null,
+                    adult: null,
+                    beautiful: null
+                }
+            });
+            
+            nameInput.value = '';
+            saveData();
+            renderGroups();
+            updateGroupCount();
+            showNotification(`成功添加小组：${name}！`);
+        }
+        
+        // 添加成员到小组
+        function addMemberToGroup() {
+            if (currentMemberGroupIndex === -1) return;
+            
+            const nameInput = document.getElementById('memberNameInput');
+            const memberName = nameInput.value.trim();
+            
+            if (memberName === '') {
+                showNotification('请输入成员姓名！');
+                return;
+            }
+            
+            const group = groups[currentMemberGroupIndex];
+            
+            // 检查是否已存在同名成员
+            if (group.members.some(member => member.name === memberName)) {
+                showNotification('该成员已存在！');
+                return;
+            }
+            
+            // 添加新成员
+            group.members.push({
+                name: memberName,
+                points: 0
+            });
+            
+            nameInput.value = '';
+            saveData();
+            renderGroups();
+            renderMembersList();
+            showNotification(`成功添加成员：${memberName}！`);
+        }
+        
+        // 从小组删除成员
+        function removeMemberFromGroup(groupIndex, memberIndex) {
+            const group = groups[groupIndex];
+            const memberName = group.members[memberIndex].name;
+            group.members.splice(memberIndex, 1);
+            
+            saveData();
+            renderGroups();
+            if (currentMemberGroupIndex === groupIndex) {
+                renderMembersList();
+            }
+            showNotification(`已删除成员：${memberName}`);
+        }
+        
+        // 显示成员管理模态框
+        function showMemberModal(index) {
+            currentMemberGroupIndex = index;
+            const group = groups[index];
+            
+            document.getElementById('memberModalGroupName').textContent = `小组：${group.name}`;
+            renderMembersList();
+            renderClassStudents();
+            document.getElementById('memberModal').style.display = 'flex';
+        }
+        
+        // 渲染班级学生列表
+        function renderClassStudents() {
+            const container = document.getElementById('classStudentsContainer');
+            const classStudents = getClassStudents();
+            
+            if (classStudents.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; font-size: 0.8rem;">班级系统中暂无学生，请先在班级积分系统中添加学生</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            const group = groups[currentMemberGroupIndex];
+            const existingMemberNames = group.members.map(m => m.name);
+            
+            classStudents.forEach((student, index) => {
+                const isAlreadyMember = existingMemberNames.includes(student.name);
+                const studentItem = document.createElement('div');
+                studentItem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px; margin-bottom: 4px; background: white; border-radius: 4px; border: 1px solid #ddd;';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.style.cssText = 'font-weight: bold; color: var(--dark); font-size: 0.85rem;';
+                nameSpan.textContent = student.name;
+                
+                const pointsSpan = document.createElement('span');
+                pointsSpan.style.cssText = 'color: var(--secondary); margin-left: 8px; font-size: 0.75rem;';
+                pointsSpan.textContent = `积分: ${student.points}`;
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.appendChild(nameSpan);
+                infoDiv.appendChild(pointsSpan);
+                
+                const addBtn = document.createElement('button');
+                addBtn.className = `modal-btn ${isAlreadyMember ? 'cancel' : 'confirm'}`;
+                addBtn.style.cssText = `padding: 4px 8px; font-size: 0.75rem; ${isAlreadyMember ? 'opacity: 0.5; cursor: not-allowed;' : ''}`;
+                if (isAlreadyMember) {
+                    addBtn.disabled = true;
+                    addBtn.innerHTML = '<i class="fas fa-check"></i> 已添加';
+                } else {
+                    addBtn.innerHTML = '<i class="fas fa-plus"></i> 添加';
+                    addBtn.addEventListener('click', function() {
+                        addStudentFromClass(student.name, student.points);
+                    });
+                }
+                
+                studentItem.appendChild(infoDiv);
+                studentItem.appendChild(addBtn);
+                container.appendChild(studentItem);
+            });
+        }
+        
+        // 从班级系统添加学生到小组
+        function addStudentFromClass(studentName, studentPoints) {
+            if (currentMemberGroupIndex === -1) return;
+            
+            const group = groups[currentMemberGroupIndex];
+            
+            // 检查是否已存在同名成员
+            if (group.members.some(member => member.name === studentName)) {
+                showNotification('该成员已存在！');
+                return;
+            }
+            
+            // 添加新成员，使用班级系统中的积分
+            group.members.push({
+                name: studentName,
+                points: studentPoints
+            });
+            
+            saveData();
+            renderGroups();
+            renderMembersList();
+            renderClassStudents(); // 刷新班级学生列表
+            showNotification(`成功从班级系统添加成员：${studentName}（积分：${studentPoints}）！`);
+        }
+        
+        // 同步班级积分（更新小组中成员的积分为班级系统中的最新积分）
+        function syncClassPoints() {
+            if (currentMemberGroupIndex === -1) return;
+            
+            const group = groups[currentMemberGroupIndex];
+            const classStudents = getClassStudents();
+            
+            if (classStudents.length === 0) {
+                showNotification('班级系统中暂无学生数据！');
+                return;
+            }
+            
+            // 创建班级学生映射
+            const classStudentMap = {};
+            classStudents.forEach(student => {
+                classStudentMap[student.name] = student.points;
+            });
+            
+            // 更新小组中成员的积分
+            let updatedCount = 0;
+            group.members.forEach(member => {
+                if (classStudentMap.hasOwnProperty(member.name)) {
+                    const newPoints = classStudentMap[member.name];
+                    if (member.points !== newPoints) {
+                        member.points = newPoints;
+                        updatedCount++;
+                    }
+                }
+            });
+            
+            if (updatedCount > 0) {
+                saveData();
+                renderGroups();
+                renderMembersList();
+                showNotification(`已同步 ${updatedCount} 名成员的积分！`);
+            } else {
+                showNotification('所有成员的积分已是最新！');
+            }
+        }
+        
+        // 隐藏成员管理模态框
+        function hideMemberModal() {
+            document.getElementById('memberModal').style.display = 'none';
+            document.getElementById('memberNameInput').value = '';
+            currentMemberGroupIndex = -1;
+        }
+        
+        // 渲染成员列表
+        function renderMembersList() {
+            if (currentMemberGroupIndex === -1) return;
+            
+            const group = groups[currentMemberGroupIndex];
+            const container = document.getElementById('membersListContainer');
+            
+            if (!group.members || group.members.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; font-size: 0.85rem;">暂无成员</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            group.members.forEach((member, index) => {
+                const memberItem = document.createElement('div');
+                memberItem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 6px; background: #f8f9fa; border-radius: 6px;';
+                memberItem.innerHTML = `
+                    <div>
+                        <span style="font-weight: bold; color: var(--dark);">${member.name}</span>
+                        <span style="color: var(--secondary); margin-left: 8px; font-size: 0.85rem;">积分: ${member.points}</span>
+                    </div>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="modal-btn confirm" onclick="addMemberPoints(${currentMemberGroupIndex}, ${index})" style="padding: 4px 8px; font-size: 0.75rem;">+1</button>
+                        <button class="modal-btn warning" onclick="consumeMemberPoints(${currentMemberGroupIndex}, ${index})" style="padding: 4px 8px; font-size: 0.75rem;">-1</button>
+                        <button class="modal-btn danger" onclick="removeMemberFromGroup(${currentMemberGroupIndex}, ${index})" style="padding: 4px 8px; font-size: 0.75rem;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(memberItem);
+            });
+        }
+        
+        // 增加成员积分
+        function addMemberPoints(groupIndex, memberIndex) {
+            const group = groups[groupIndex];
+            const member = group.members[memberIndex];
+            member.points++;
+            
+            saveData();
+            renderGroups();
+            renderMembersList();
+            
+            const totalPoints = calculateGroupPoints(group);
+            const stage = getStage(totalPoints);
+            
+            if (totalPoints === 50) {
+                showNotification(`${group.name}的蛋孵化了！获得了一只可爱神兽幼崽！`);
+            } else if (totalPoints === 100) {
+                showNotification(`${group.name}的神兽长大了！`);
+            } else if (totalPoints === 200) {
+                showNotification(`${group.name}的神兽成年了！`);
+            } else if (totalPoints === 500) {
+                showNotification(`恭喜${group.name}！获得了非常漂亮的神兽！`);
+            }
+        }
+        
+        // 消耗成员积分
+        function consumeMemberPoints(groupIndex, memberIndex) {
+            const group = groups[groupIndex];
+            const member = group.members[memberIndex];
+            
+            if (member.points <= 0) {
+                showNotification(`${member.name}的积分不足，无法消耗！`);
+                return;
+            }
+            
+            member.points--;
+            saveData();
+            renderGroups();
+            renderMembersList();
+            showNotification(`${member.name}消耗了1积分，当前积分：${member.points}`);
+        }
+        
+        // 删除小组
+        function deleteGroup(index) {
+            const groupName = groups[index].name;
+            groups.splice(index, 1);
+            saveData();
+            renderGroups();
+            updateGroupCount();
+            showNotification(`已删除小组：${groupName}`);
+        }
+        
+        // 确认删除小组
+        function confirmDeleteGroup(index) {
+            const groupName = groups[index].name;
+            deleteType = 'group';
+            deleteIndex = index;
+            
+            document.getElementById('deleteModalTitle').textContent = '确认删除小组';
+            document.getElementById('deleteModalMessage').textContent = `您确定要删除小组 "${groupName}" 吗？此操作不可撤销。`;
+            document.getElementById('deleteModal').style.display = 'flex';
+        }
+        
+        // 确认删除全部
+        function confirmDeleteAll() {
+            if (groups.length === 0) {
+                showNotification('没有小组，无需删除！');
+                return;
+            }
+            
+            deleteType = 'all';
+            
+            document.getElementById('deleteModalTitle').textContent = '确认删除全部小组';
+            document.getElementById('deleteModalMessage').textContent = `您确定要删除所有小组吗？此操作不可撤销。`;
+            document.getElementById('deleteModal').style.display = 'flex';
+        }
+        
+        // 确认清空积分
+        function confirmResetPoints() {
+            if (groups.length === 0) {
+                showNotification('没有小组，无需清空积分！');
+                return;
+            }
+            
+            document.getElementById('resetPointsModalMessage').textContent = `您确定要清空所有成员的积分吗？所有成员积分将重置为0，此操作不可撤销。`;
+            document.getElementById('resetPointsModal').style.display = 'flex';
+        }
+        
+        // 执行删除操作
+        function executeDelete() {
+            if (deleteType === 'group') {
+                deleteGroup(deleteIndex);
+            } else if (deleteType === 'all') {
+                groups = [];
+                saveData();
+                renderGroups();
+                updateGroupCount();
+                showNotification('已删除所有小组！');
+            }
+            
+            hideDeleteModal();
+        }
+        
+        // 执行清空积分操作
+        function executeResetPoints() {
+            // 将所有成员的积分重置为0
+            groups.forEach(group => {
+                if (group.members) {
+                    group.members.forEach(member => {
+                        member.points = 0;
+                    });
+                }
+            });
+            
+            saveData();
+            renderGroups();
+            hideResetPointsModal();
+            showNotification('已清空所有成员的积分！');
+        }
+        
+        // 获取神兽阶段
+        function getStage(points) {
+            if (points < 50) return 'egg';
+            if (points < 100) return 'baby';
+            if (points < 200) return 'growing';
+            if (points < 500) return 'adult';
+            return 'beautiful';
+        }
+        
+        // 获取神兽图标
+        function getPetIcon(stage, groupIndex) {
+            const group = groups[groupIndex];
+            // 如果小组有自定义图片，使用图片
+            if (group && group.petImages && group.petImages[stage]) {
+                return `<img src="${group.petImages[stage]}" class="pet-image" alt="${stage}">`;
+            }
+            
+            // 否则使用默认的emoji
+            switch(stage) {
+                case 'egg': return '🥚';
+                case 'baby': return '🐣';
+                case 'growing': return '🐥';
+                case 'adult': return '🐔';
+                case 'beautiful': return '🦄';
+                default: return '🥚';
+            }
+        }
+        
+        // 获取阶段信息文本
+        function getStageInfo(stage, points) {
+            switch(stage) {
+                case 'egg': 
+                    return `还需要${50 - points}分孵化`;
+                case 'baby': 
+                    return `还需要${100 - points}分长大`;
+                case 'growing': 
+                    return `还需要${200 - points}分成年`;
+                case 'adult': 
+                    return `还需要${500 - points}分进化`;
+                case 'beautiful': 
+                    return '神兽已进化完成！';
+                default: 
+                    return '';
+            }
+        }
+        
+        // 计算进度百分比
+        function getProgressPercentage(stage, points) {
+            switch(stage) {
+                case 'egg': 
+                    return (points / 50) * 100;
+                case 'baby': 
+                    return ((points - 50) / 50) * 100;
+                case 'growing': 
+                    return ((points - 100) / 100) * 100;
+                case 'adult': 
+                    return ((points - 200) / 300) * 100;
+                case 'beautiful': 
+                    return 100;
+                default: 
+                    return 0;
+            }
+        }
+        
+        // 渲染小组列表
+        function renderGroups() {
+            const container = document.getElementById('groupsContainer');
+            
+            if (groups.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="pet">🥚</div>
+                        <p>还没有小组，快添加第一个小组开始养成神兽吧！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            groups.forEach((group, index) => {
+                const totalPoints = calculateGroupPoints(group);
+                const stage = getStage(totalPoints);
+                const petIcon = getPetIcon(stage, index);
+                const stageInfo = getStageInfo(stage, totalPoints);
+                const progressPercentage = getProgressPercentage(stage, totalPoints);
+                
+                // 渲染成员标签
+                let membersHTML = '';
+                if (group.members && group.members.length > 0) {
+                    const membersList = group.members.slice(0, 3).map(m => 
+                        `<span class="member-tag">${m.name} (${m.points})</span>`
+                    ).join('');
+                    const moreCount = group.members.length > 3 ? `<span class="member-tag">+${group.members.length - 3}</span>` : '';
+                    membersHTML = `<div class="members-list">${membersList}${moreCount}</div>`;
+                } else {
+                    membersHTML = '<div class="members-list" style="color: #999; font-size: 0.7rem;">暂无成员</div>';
+                }
+                
+                const groupCard = document.createElement('div');
+                groupCard.className = `student-card ${stage}`;
+                groupCard.innerHTML = `
+                    <h3 class="student-name">${group.name}</h3>
+                    <div class="points">总积分: ${totalPoints}</div>
+                    <div class="members-section">
+                        ${membersHTML}
+                        <button class="add-member-btn" onclick="showMemberModal(${index})" style="width: 100%;">
+                            <i class="fas fa-users"></i> 管理成员
+                        </button>
+                    </div>
+                    <div class="pet-container">
+                        <div class="pet">${petIcon}</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress ${stage}-progress" style="width: ${progressPercentage}%"></div>
+                    </div>
+                    <div class="stage-info">${stageInfo}</div>
+                    <div class="action-buttons">
+                        <button class="add-point-btn customize" onclick="showCustomizeModal(${index})" style="flex: 1;">
+                            <i class="fas fa-images"></i> 自定义
+                        </button>
+                        <button class="delete-student-btn" onclick="confirmDeleteGroup(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(groupCard);
+            });
+        }
+        
+        // 显示通知
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 显示导入模态框
+        function showImportModal() {
+            document.getElementById('importModal').style.display = 'flex';
+        }
+        
+        // 隐藏导入模态框
+        function hideImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+        }
+        
+        // 隐藏删除模态框
+        function hideDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            deleteType = '';
+            deleteIndex = -1;
+        }
+        
+        // 隐藏清空积分模态框
+        function hideResetPointsModal() {
+            document.getElementById('resetPointsModal').style.display = 'none';
+        }
+        
+        // 显示自定义模态框
+        function showCustomizeModal(index) {
+            currentCustomizeIndex = index;
+            const group = groups[index];
+            
+            // 设置模态框标题
+            document.getElementById('customizeModalTitle').textContent = `自定义 ${group.name} 的神兽图片`;
+            document.getElementById('customizeModalStudentName').textContent = `小组：${group.name}`;
+            
+            // 加载小组的图片到临时变量
+            tempPetImages = {
+                egg: group.petImages?.egg || null,
+                baby: group.petImages?.baby || null,
+                growing: group.petImages?.growing || null,
+                adult: group.petImages?.adult || null,
+                beautiful: group.petImages?.beautiful || null
+            };
+            
+            // 更新预览
+            updateImagePreviews();
+            document.getElementById('customizeModal').style.display = 'flex';
+        }
+        
+        // 隐藏自定义模态框
+        function hideCustomizeModal() {
+            document.getElementById('customizeModal').style.display = 'none';
+            currentCustomizeIndex = -1;
+            // 清空临时图片
+            tempPetImages = {
+                egg: null,
+                baby: null,
+                growing: null,
+                adult: null,
+                beautiful: null
+            };
+        }
+        
+        // 处理文件导入
+        function handleFileImport() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('请选择要导入的文件！');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // 假设第一个工作表包含小组数据
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // 清空当前数据
+                    groups = [];
+                    
+                    // 添加小组数据（假设Excel格式：小组名称、成员姓名、成员积分）
+                    const groupMap = {};
+                    jsonData.forEach(row => {
+                        const groupName = row.小组名称 || row['小组名称'];
+                        const memberName = row.成员姓名 || row['成员姓名'] || row.姓名;
+                        const memberPoints = row.成员积分 || row['成员积分'] || row.积分 || 0;
+                        
+                        if (groupName && memberName) {
+                            if (!groupMap[groupName]) {
+                                groupMap[groupName] = {
+                                    name: groupName,
+                                    members: [],
+                                    petImages: {
+                                        egg: null,
+                                        baby: null,
+                                        growing: null,
+                                        adult: null,
+                                        beautiful: null
+                                    }
+                                };
+                            }
+                            groupMap[groupName].members.push({
+                                name: memberName,
+                                points: memberPoints
+                            });
+                        }
+                    });
+                    
+                    groups = Object.values(groupMap);
+                    
+                    saveData();
+                    renderGroups();
+                    updateGroupCount();
+                    hideImportModal();
+                    showNotification(`成功导入 ${groups.length} 个小组数据！`);
+                } catch (error) {
+                    console.error('导入错误:', error);
+                    showNotification('文件导入失败，请检查文件格式！');
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // 处理图片上传
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            const stage = event.target.getAttribute('data-stage');
+            
+            if (!file) return;
+            
+            // 检查文件类型
+            if (!file.type.match('image.*')) {
+                showNotification('请选择图片文件！');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                // 保存到临时变量
+                tempPetImages[stage] = e.target.result;
+                
+                // 更新预览
+                updateImagePreviews();
+                
+                showNotification(`已上传${stage}阶段的图片`);
+                
+                // 重置input的值，允许重复上传同一文件
+                event.target.value = '';
+            };
+            
+            reader.onerror = function() {
+                showNotification('图片上传失败，请重试！');
+                event.target.value = '';
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // 更新图片预览
+        function updateImagePreviews() {
+            const stages = ['egg', 'baby', 'growing', 'adult', 'beautiful'];
+            
+            stages.forEach(stage => {
+                const previewContainer = document.getElementById(`${stage}Preview`);
+                const imageInfo = document.getElementById(`${stage}ImageInfo`);
+                previewContainer.innerHTML = '';
+                
+                if (tempPetImages[stage]) {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    previewItem.innerHTML = `
+                        <img src="${tempPetImages[stage]}" alt="${stage}">
+                        <p>已上传</p>
+                    `;
+                    previewContainer.appendChild(previewItem);
+                    imageInfo.textContent = '已上传';
+                    imageInfo.style.color = 'var(--success)';
+                } else {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    previewItem.innerHTML = `
+                        <div style="width:100px;height:100px;background:#f0f0f0;border-radius:6px;display:flex;align-items:center;justify-content:center;margin:0 auto;">
+                            <i class="fas fa-image" style="font-size:24px;color:#ccc;"></i>
+                        </div>
+                        <p>未上传</p>
+                    `;
+                    previewContainer.appendChild(previewItem);
+                    imageInfo.textContent = '未上传';
+                    imageInfo.style.color = '#666';
+                }
+            });
+        }
+        
+        // 保存自定义图片
+        function saveCustomImages() {
+            if (currentCustomizeIndex === -1) return;
+            
+            // 将临时图片保存到小组数据
+            if (!groups[currentCustomizeIndex].petImages) {
+                groups[currentCustomizeIndex].petImages = {};
+            }
+            
+            groups[currentCustomizeIndex].petImages = {
+                egg: tempPetImages.egg,
+                baby: tempPetImages.baby,
+                growing: tempPetImages.growing,
+                adult: tempPetImages.adult,
+                beautiful: tempPetImages.beautiful
+            };
+            
+            saveData();
+            renderGroups();
+            hideCustomizeModal();
+            showNotification('神兽图片已保存！');
+        }
+        
+        // 重置图片
+        function resetImages() {
+            if (confirm('确定要重置为默认图片吗？')) {
+                tempPetImages = {
+                    egg: null,
+                    baby: null,
+                    growing: null,
+                    adult: null,
+                    beautiful: null
+                };
+                
+                updateImagePreviews();
+                showNotification('已重置为默认图片');
+            }
+        }
+        
+        // 导出数据
+        function exportData() {
+            if (groups.length === 0) {
+                showNotification('没有小组数据可导出！');
+                return;
+            }
+            
+            // 准备Excel数据（展开为成员列表）
+            const excelData = [];
+            groups.forEach(group => {
+                if (group.members && group.members.length > 0) {
+                    group.members.forEach(member => {
+                        excelData.push({
+                            '小组名称': group.name,
+                            '成员姓名': member.name,
+                            '成员积分': member.points,
+                            '小组总积分': calculateGroupPoints(group)
+                        });
+                    });
+                } else {
+                    excelData.push({
+                        '小组名称': group.name,
+                        '成员姓名': '',
+                        '成员积分': 0,
+                        '小组总积分': 0
+                    });
+                }
+            });
+            
+            // 创建工作表
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, '小组数据');
+            
+            // 生成Excel文件并下载
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            
+            // 创建下载链接
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(dataBlob);
+            downloadLink.download = `神兽养成计划数据_${new Date().toISOString().split('T')[0]}.xlsx`;
+            
+            // 触发下载
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            showNotification('数据导出成功！');
+        }
+        
+        // 下载Excel模板
+        function downloadTemplate() {
+            // 准备模板数据
+            const templateData = [
+                { '小组名称': '第一组', '成员姓名': '张三', '成员积分': 0 },
+                { '小组名称': '第一组', '成员姓名': '李四', '成员积分': 0 },
+                { '小组名称': '第二组', '成员姓名': '王五', '成员积分': 0 },
+                { '小组名称': '第二组', '成员姓名': '赵六', '成员积分': 0 }
+            ];
+            
+            // 创建工作表
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, '小组数据模板');
+            
+            // 生成Excel文件并下载
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            
+            // 创建下载链接
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(dataBlob);
+            downloadLink.download = '神兽养成计划模板.xlsx';
+            
+            // 触发下载
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            showNotification('模板下载成功！');
+        }
+        
+        // 初始化应用
+        init();
+    </script>
+</body>
+</html>
